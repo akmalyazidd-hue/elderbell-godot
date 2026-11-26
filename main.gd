@@ -1,5 +1,6 @@
 extends Node2D
 
+const MOONFALL = preload("res://moonfall.webp")
 const WORLD = Vector2(1450, 1000)
 const CLASSES = {
  "Wizard": ["Ember Lance", "Frost Nova", "Arcane Focus"],
@@ -7,6 +8,7 @@ const CLASSES = {
  "Clerk": ["Radiant Brand", "Sanctuary", "Renewal"],
  "Archer": ["Twinshot", "Thorn Volley", "Fleetfoot"]
 }
+var region = "Briarwood"
 var job = "Clerk"
 var position_player = Vector2(400, 400)
 var hp = 100.0
@@ -115,8 +117,19 @@ func damage(e: Dictionary, amount: float) -> void:
  e.hp -= value
  effects.append({"pos":e.pos+Vector2(0,-36),"life":0.8,"radius":0.0,"text":str(int(value))})
 
+func change_region() -> void:
+ region = "Moonfall" if region == "Briarwood" else "Briarwood"
+ position_player = Vector2(720, 780) if region == "Moonfall" else Vector2(400,400)
+ camera = (position_player - get_viewport_rect().size / 2).clamp(Vector2.ZERO, WORLD - get_viewport_rect().size)
+ effects.clear()
+ for e in foes:
+  e.hp = e.max
+  e.attack = 0.0
+ queue_redraw()
+
 func _unhandled_input(event: InputEvent) -> void:
  if event is InputEventKey and event.pressed and not event.echo:
+  if event.keycode == KEY_M and chosen: change_region()
   if event.keycode == KEY_1: attack(0)
   if event.keycode == KEY_2: attack(1)
   if event.keycode == KEY_3: attack(2)
@@ -139,6 +152,9 @@ func handle_press(point: Vector2, index: int) -> void:
     job = CLASSES.keys()[i]
     chosen = true
   return
+ if Rect2(size.x-155,12,143,44).has_point(point):
+  change_region()
+  return
  for i in 3:
   if Rect2(size.x-260+i*82,size.y-80,76,60).has_point(point):
    attack(i)
@@ -159,13 +175,16 @@ func _draw() -> void:
    draw_string(ThemeDB.fallback_font,r.position+Vector2(14,30),CLASSES.keys()[i],HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color.WHITE)
   return
  draw_set_transform(-camera)
- draw_rect(Rect2(Vector2.ZERO,WORLD),Color("#699850"))
- for x in range(0,1450,60):
-  for y in range(0,1000,60):
-   draw_circle(Vector2(x+((y*3)%47),y+((x*7)%43)),2,Color("#81aa5f"))
- draw_line(Vector2(0,650),Vector2(1450,300),Color("#bd9665"),38,true)
+ if region == "Moonfall":
+  draw_texture_rect(MOONFALL,Rect2(Vector2.ZERO,WORLD),false)
+ else:
+  draw_rect(Rect2(Vector2.ZERO,WORLD),Color("#699850"))
+  for x in range(0,1450,60):
+   for y in range(0,1000,60):
+    draw_circle(Vector2(x+((y*3)%47),y+((x*7)%43)),2,Color("#81aa5f"))
+  draw_line(Vector2(0,650),Vector2(1450,300),Color("#bd9665"),38,true)
  var objects: Array = []
- for tree in trees:
+ for tree in trees if region == "Briarwood" else []:
   objects.append({"y":tree.y,"type":"tree","pos":tree})
  for e in foes:
   if e.hp>0: objects.append({"y":e.pos.y,"type":"enemy","pos":e.pos,"data":e})
@@ -193,6 +212,8 @@ func _draw() -> void:
  draw_set_transform(Vector2.ZERO)
  draw_rect(Rect2(12,12,220,48),Color("#173a32"))
  draw_string(ThemeDB.fallback_font,Vector2(24,42),job+"  HP "+str(int(hp)),HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color.WHITE)
+ draw_rect(Rect2(size.x-155,12,143,44),Color("#244b3d"))
+ draw_string(ThemeDB.fallback_font,Vector2(size.x-148,39),region+" [M]",HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color.WHITE)
  for i in 3:
   var r=Rect2(size.x-260+i*82,size.y-80,76,60)
   draw_rect(r,Color("#244b3d"))
