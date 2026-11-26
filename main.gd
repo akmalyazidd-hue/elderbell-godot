@@ -1,5 +1,6 @@
 extends Node2D
 
+const GRAVE_PROPS = preload("res://moon-props.png")
 const MOONFALL = preload("res://moonfall.webp")
 const WORLD = Vector2(1450, 1000)
 const CLASSES = {
@@ -14,6 +15,17 @@ var position_player = Vector2(400, 400)
 var hp = 100.0
 var foes: Array = []
 var trees: Array = []
+var grave_props: Array = []
+const BURIAL_PLOTS = [
+ [245,332,0],[505,316,1],[947,330,2],[1218,475,0],
+ [390,514,2],[674,548,0],[920,615,1],[191,782,1],
+ [530,751,1],[866,822,2],[1230,832,0]
+]
+const PLOT_PIECES = [
+ [[0,-25,-7],[2,19,7],[4,39,20],[5,-4,18]],
+ [[3,-28,-8],[2,8,2],[4,32,18],[5,17,20]],
+ [[1,20,-12],[4,-25,8],[5,0,12],[5,-45,16]]
+]
 var effects: Array = []
 var cooldown = [0.0, 0.0, 0.0]
 var buff = 0.0
@@ -36,6 +48,9 @@ func _ready() -> void:
   var point = Vector2(rng.randf_range(40, 1410), rng.randf_range(40, 960))
   if point.distance_to(position_player) > 100:
    trees.append(point)
+ for plot in BURIAL_PLOTS:
+  for piece in PLOT_PIECES[plot[2]]:
+   grave_props.append({"pos":Vector2(plot[0]+piece[1],plot[1]+piece[2]),"variant":piece[0]})
  for point in [Vector2(520,400),Vector2(660,350),Vector2(420,640),Vector2(760,530),Vector2(880,700),Vector2(1150,400)]:
   foes.append({"pos":point,"hp":65.0,"max":65.0,"attack":0.0})
  queue_redraw()
@@ -186,6 +201,9 @@ func _draw() -> void:
  var objects: Array = []
  for tree in trees if region == "Briarwood" else []:
   objects.append({"y":tree.y,"type":"tree","pos":tree})
+ if region == "Moonfall":
+  for prop in grave_props:
+   objects.append({"y":prop.pos.y,"type":"grave","pos":prop.pos,"variant":prop.variant})
  for e in foes:
   if e.hp>0: objects.append({"y":e.pos.y,"type":"enemy","pos":e.pos,"data":e})
  objects.append({"y":position_player.y,"type":"player","pos":position_player})
@@ -196,6 +214,10 @@ func _draw() -> void:
    draw_rect(Rect2(p+Vector2(-5,-35),Vector2(10,35)),Color("#594433"))
    draw_circle(p+Vector2(0,-46),25,Color("#2c643f"))
    draw_circle(p+Vector2(-12,-55),16,Color("#3d7950"))
+  elif item.type == "grave":
+   var prop_scale = 1.4 if item.variant < 2 else 1.0
+   var tint = Color(1,1,1,0.45) if p.y >= position_player.y and p.y-position_player.y < 70*prop_scale and absf(p.x-position_player.x)<27*prop_scale else Color.WHITE
+   draw_texture_rect_region(GRAVE_PROPS,Rect2(p-Vector2(32,74)*prop_scale,Vector2(64,80)*prop_scale),Rect2(item.variant*64,0,64,80),tint)
   elif item.type == "enemy":
    draw_circle(p+Vector2(0,-9),12,Color("#6eb4ce"))
    draw_circle(p+Vector2(-4,-12),2,Color("#152e3c"))
